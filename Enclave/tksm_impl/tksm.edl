@@ -1,0 +1,56 @@
+enclave {
+    include "tksm_common.h"
+    // include "tksm_error.h";
+    include "sgx_report.h"
+    include "sgx_qve_header.h"
+    include "sgx_ql_quote.h"
+
+
+    trusted {
+        public uint64_t ecall_tksm_get_target_info([out] sgx_target_info_t* target_info);
+
+        public uint64_t ecall_tksm_gen_asym_key(
+            [in] const sgx_target_info_t* p_qe3_target,
+
+            [out, size = pub_key_len] uint8_t* p_pub_key, uint64_t pub_key_len,
+            [out, size = sealed_priv_key_len] uint8_t* p_sealed_priv_key, uint64_t sealed_priv_key_len,
+            [out] sgx_report_t* p_report
+        );
+
+        public uint64_t ecall_tksm_gen_sym_key(
+            [in] const sgx_target_info_t* p_qe3_target,
+
+            [out, size = sealed_sym_key_len] uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len,
+            [out] sgx_report_t* p_report
+        );
+
+        public uint64_t ecall_tksm_export_sym_key(
+            [in, size = sealed_sym_key_len] const uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len,
+            [in, size = pub_key_len] const uint8_t* p_pub_key, uint64_t pub_key_len,
+            [in, size = quote_pub_key_len] const uint8_t* p_quote_pub_key, uint64_t quote_pub_key_len,
+            [in] const sgx_ql_qe_report_info_t *p_qve_report_info,
+            time_t expiration_check_date,
+            uint32_t collateral_expiration_status,
+            sgx_ql_qv_result_t quote_verification_result,
+            [in, size = supplemental_data_size] const uint8_t *p_supplemental_data,
+            uint32_t supplemental_data_size,
+
+
+            [out, size = enc_sym_key_len] buf_t* p_enc_sym_key, uint64_t enc_sym_key_len
+        );
+
+        public uint64_t ecall_tksm_import_sym_key(
+            [in, size = sealed_priv_key_len] const uint8_t* p_sealed_priv_key, uint64_t sealed_priv_key_len,
+            [in, size = enc_sym_key_len] const uint8_t* p_enc_sym_key, uint64_t enc_sym_key_len,
+            [in, size = quote_sym_key_len] const uint8_t* p_quote_sym_key, uint64_t quote_sym_key_len,
+            [in] const sgx_ql_qe_report_info_t *p_qve_report_info,
+            time_t expiration_check_date,
+            uint32_t collateral_expiration_status,
+            sgx_ql_qv_result_t quote_verification_result,
+            [in, size=supplemental_data_size] const uint8_t *p_supplemental_data,
+            uint32_t supplemental_data_size,
+
+            [out, size = sealed_sym_key_len] uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len
+        );
+    };
+};

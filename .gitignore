@@ -1,0 +1,17 @@
+.vscode/*
+app
+*.so
+*.o
+
+.config_*
+Enclave/Enclave_t*
+App/Enclave_u*
+
+
+a.out
+t.c
+
+log*
+*.dat
+.gdb_history
+
