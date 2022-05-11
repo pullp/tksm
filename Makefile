@@ -85,8 +85,8 @@ DCAP_Library_Name := sgx_dcap_ql
 Uae_Library_Name := sgx_quote_ex
 
 
-App_Cpp_Files := App/App.cpp  $(wildcard App/tksm_api/*.cpp)
-App_Include_Paths := -IApp -I$(SGX_SDK)/include -IInclude -IApp/tksm_api
+App_Cpp_Files := App/App.cpp  $(wildcard App/tksm_api/*.cpp) $(wildcard App/flas_api/*.cpp)
+App_Include_Paths := -IApp -I$(SGX_SDK)/include -IInclude/tksm_include -IInclude/flas_include  -IApp/tksm_api
 
 App_C_Flags := -fPIC -Wno-attributes $(App_Include_Paths)
 
@@ -130,8 +130,8 @@ else
 endif
 Crypto_Library_Name := sgx_tcrypto
 
-Enclave_Cpp_Files := Enclave/Enclave.cpp  $(wildcard Enclave/tksm_impl/*.cpp)
-Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/libcxx -I$(SGX_SDK)/include/tlibc -IInclude
+Enclave_Cpp_Files := Enclave/Enclave.cpp  $(wildcard Enclave/tksm_impl/*.cpp) $(wildcard Enclave/flas_impl/*.cpp)
+Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/libcxx -I$(SGX_SDK)/include/tlibc -IInclude/tksm_include -IInclude/flas_include 
 
 Enclave_C_Flags := -nostdinc -fvisibility=hidden -fpie -fstack-protector $(Enclave_Include_Paths)
 Enclave_Cpp_Flags := $(Enclave_C_Flags) -nostdinc++

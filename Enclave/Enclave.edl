@@ -42,6 +42,7 @@ enclave {
       
     // from "TrustedLibrary/Libcxx.edl" import *;
     from "tksm_impl/tksm.edl" import *;
+    from "flas_impl/flas.edl" import *;
     from "sgx_tstdc.edl" import *;
 
     /* 
