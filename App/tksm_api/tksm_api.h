@@ -44,4 +44,18 @@ tksm_status_t tksm_import_sym_key(
     uint8_t **pp_sealed_sym_key, uint64_t *p_sealed_sym_key_len
 );
 
+tksm_status_t tksm_encrypt(
+    const sgx_enclave_id_t eid,
+    const uint8_t* p_sealed_sym_key, const uint64_t sealed_sym_key_len,
+    const uint8_t* p_plaintext, const uint64_t plaintext_len,
+    uint8_t** pp_ciphertext, uint64_t* p_ciphertext_len
+);
+
+tksm_status_t tksm_decrypt(
+    const sgx_enclave_id_t eid,
+    const uint8_t* p_sealed_sym_key, const uint64_t sealed_sym_key_len,
+    const uint8_t* p_ciphertext, const uint64_t ciphertext_len,
+    uint8_t** pp_plaintext, uint64_t* p_plaintext_len
+);
+
 #endif /* _TKSM_API_H_ */

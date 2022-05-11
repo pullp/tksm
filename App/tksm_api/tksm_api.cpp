@@ -470,3 +470,91 @@ err_free_supplemental_data:
 err_out:
     return ret;
 }
+
+
+tksm_status_t tksm_encrypt(
+    const sgx_enclave_id_t eid,
+    const uint8_t* p_sealed_sym_key, const uint64_t sealed_sym_key_len,
+    const uint8_t* p_plaintext, const uint64_t plaintext_len,
+    uint8_t** pp_ciphertext, uint64_t* p_ciphertext_len
+) {
+    tksm_status_t ret = TKSM_SUCCESS;
+    sgx_status_t rc = SGX_SUCCESS;
+    uint64_t ecall_rc = TKSM_SUCCESS;
+
+    uint64_t ciphertext_len = plaintext_len + sizeof(tksm_aes_gcm_enc_t);
+    tksm_aes_gcm_enc_t* p_ciphertext = static_cast<tksm_aes_gcm_enc_t*>(malloc(ciphertext_len));
+    if (p_ciphertext == NULL) {
+        LOG("Failed to allocate memory for ciphertext\n");
+        ret = TKSM_ERROR_OUT_OF_MEMORY;
+        goto err_out;
+    }
+
+    rc = ecall_tksm_encrypt(
+        eid, &ecall_rc,
+        p_sealed_sym_key, sealed_sym_key_len,
+        p_plaintext, plaintext_len,
+        p_ciphertext, ciphertext_len);
+    if (rc != SGX_SUCCESS || ecall_rc != TKSM_SUCCESS) {
+        LOG("Failed to encrypt: %#x, %#lx\n", rc, ecall_rc);
+        ret = TKSM_ERROR_UNEXPECTED;
+        goto err_free_ciphertext;
+    }
+
+    *pp_ciphertext = reinterpret_cast<uint8_t *>(p_ciphertext);
+    *p_ciphertext_len = ciphertext_len;
+    return ret;
+
+err_free_ciphertext:
+    free(p_ciphertext);
+err_out:
+    return ret;
+}
+
+tksm_status_t tksm_decrypt(
+    const sgx_enclave_id_t eid,
+    const uint8_t* p_sealed_sym_key, const uint64_t sealed_sym_key_len,
+    const uint8_t* p_ciphertext, const uint64_t ciphertext_len,
+    uint8_t** pp_plaintext, uint64_t* p_plaintext_len
+) {
+    tksm_status_t ret = TKSM_SUCCESS;
+    sgx_status_t rc = SGX_SUCCESS;
+    uint64_t ecall_rc = TKSM_SUCCESS;
+
+    uint64_t plaintext_len = ciphertext_len - sizeof(tksm_aes_gcm_enc_t);
+    uint8_t* p_plaintext = static_cast<uint8_t*>(malloc(plaintext_len));
+    if (p_plaintext == NULL) {
+        LOG("Failed to allocate memory for plaintext\n");
+        ret = TKSM_ERROR_OUT_OF_MEMORY;
+        goto err_out;
+    }
+
+    // LOG("before ecall dec_plain_text:\n");
+    // hexdump(p_plaintext, 0x40);
+
+    rc = ecall_tksm_decrypt(
+        eid, &ecall_rc,
+        p_sealed_sym_key, sealed_sym_key_len,
+        reinterpret_cast<const tksm_aes_gcm_enc_t *>(p_ciphertext), ciphertext_len,
+        p_plaintext, plaintext_len);
+
+    if (rc != SGX_SUCCESS || ecall_rc != TKSM_SUCCESS) {
+        LOG("Failed to decrypt: %#x, %#lx\n", rc, ecall_rc);
+        ret = TKSM_ERROR_UNEXPECTED;
+        goto err_free_plaintext;
+    }
+
+    // LOG("after ecall dec_plain_text:\n");
+    // hexdump(p_plaintext, 0x40);
+
+
+    *pp_plaintext = p_plaintext;
+    *p_plaintext_len = plaintext_len;
+    return ret;
+
+
+err_free_plaintext:
+    free(p_plaintext);
+err_out:
+    return ret;
+}

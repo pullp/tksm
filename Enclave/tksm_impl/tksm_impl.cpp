@@ -216,8 +216,8 @@ uint64_t ecall_tksm_gen_sym_key(
         goto err_out;
     }
 
-    // LOG("AES key:\n");
-    // hexdump(aes_key, TKSM_AES_KEY_SIZE);
+    LOG("AES key:\n");
+    hexdump(aes_key, TKSM_AES_KEY_SIZE);
 
     // Calc hash of the AES key
     rc = sgx_sha256_msg(aes_key, TKSM_AES_KEY_SIZE, &hash);
@@ -567,4 +567,130 @@ err_free_rsa_priv_key:
 err_out:
     return ret;
 }
+
+
+// for test purpose
+uint64_t ecall_tksm_encrypt(const uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len, const uint8_t* p_plaintext, uint64_t plaintext_len, tksm_aes_gcm_enc_t* p_ciphertext, uint64_t ciphertext_len) {
+    uint64_t ret = TKSM_SUCCESS;
+    sgx_status_t rc = SGX_SUCCESS;
+    uint8_t aes_key_buffer[TKSM_AES_KEY_SIZE] = {0};
+    uint32_t unsealed_aes_key_len = sizeof(aes_key_buffer);
+    // const int IV_LEN = 12;
+    // const int MAC_LEN = 16;
+    // const uint8_t iv[TKSM_AES_GCM_IV_SIZE] = {'g', 'r', 'e', 'e', 'n', 's', 'e', 'c', 'u', 'r', 'i', 't', 'y'};
+    // uint8_t mac[TKSM_AES_GCM_MAC_SIZE] = {0};
+    UNUSED(sealed_sym_key_len);
+    UNUSED(ciphertext_len);
+
+    memcpy(p_ciphertext->iv, "greedisgood.", TKSM_AES_GCM_IV_SIZE);
+
+
+    rc = sgx_unseal_data(
+        reinterpret_cast<const sgx_sealed_data_t *>(p_sealed_sym_key), 
+        nullptr, 0,
+        aes_key_buffer, &unsealed_aes_key_len);
+    if (rc != SGX_SUCCESS) {
+        LOG("sgx_unseal_data failed: %#x\n", rc);
+        ret = TKSM_ERROR_UNEXPECTED;
+        goto err_out;
+    }
+    if (unsealed_aes_key_len != TKSM_AES_KEY_SIZE) {
+        LOG("unsealed_aes_key_len is not correct: %#lx\n", unsealed_aes_key_len);
+        ret = TKSM_ERROR_UNEXPECTED;
+        goto err_out;
+    }
+
+    // p_ciphertext = p_ciphertext + TKSM_AES_GCM_ENC_LEN_PLUS;
+    rc = sgx_rijndael128GCM_encrypt(
+        reinterpret_cast<sgx_aes_gcm_128bit_key_t *>(aes_key_buffer),
+        p_plaintext,
+        static_cast<uint32_t>(plaintext_len),
+        p_ciphertext->data,
+        p_ciphertext->iv,
+        TKSM_AES_GCM_IV_SIZE,
+        nullptr,
+        0,
+        reinterpret_cast<sgx_aes_gcm_128bit_tag_t *>(p_ciphertext->mac));
+    
+    if (rc != SGX_SUCCESS) {
+        LOG("sgx_rijndael128GCM_encrypt failed: %#x\n", rc);
+        ret = TKSM_ERROR_UNEXPECTED;
+        goto err_out;
+    }
+
+    // LOG("aes_key_buffer:\n");
+    // hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
+
+    // LOG("plain text:\n");
+    // hexdump(p_plaintext, plaintext_len);
+
+    // LOG("cipher text:\n");
+    // hexdump(p_ciphertext, ciphertext_len);
+
+err_out:
+    return ret;
+}
+
+// for test purpose
+uint64_t ecall_tksm_decrypt(
+    const uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len, 
+    const tksm_aes_gcm_enc_t* p_ciphertext, uint64_t ciphertext_len, 
+    uint8_t* p_plaintext, uint64_t plaintext_len) {
+    uint64_t ret = TKSM_SUCCESS;
+    sgx_status_t rc = SGX_SUCCESS;
+    uint8_t aes_key_buffer[TKSM_AES_KEY_SIZE] = {0};
+    uint32_t unsealed_aes_key_len = sizeof(aes_key_buffer);
+    UNUSED(sealed_sym_key_len);
+    UNUSED(ciphertext_len);
+    UNUSED(plaintext_len);
+
+
+    rc = sgx_unseal_data(
+        reinterpret_cast<const sgx_sealed_data_t *>(p_sealed_sym_key), 
+        nullptr, 0,
+        aes_key_buffer, &unsealed_aes_key_len);
+    if (rc != SGX_SUCCESS) {
+        LOG("sgx_unseal_data failed: %#x\n", rc);
+        ret = TKSM_ERROR_UNEXPECTED;
+        goto err_out;
+    }
+    if (unsealed_aes_key_len != TKSM_AES_KEY_SIZE) {
+        LOG("unsealed_aes_key_len is not correct: %#lx\n", unsealed_aes_key_len);
+        ret = TKSM_ERROR_UNEXPECTED;
+        goto err_out;
+    }
+
+
+    rc = sgx_rijndael128GCM_decrypt(
+        reinterpret_cast<sgx_aes_gcm_128bit_key_t *>(aes_key_buffer),
+        p_ciphertext->data,
+        static_cast<uint32_t>(ciphertext_len - sizeof(tksm_aes_gcm_enc_t)),
+        p_plaintext,
+        p_ciphertext->iv,
+        TKSM_AES_GCM_IV_SIZE,
+        nullptr,
+        0,
+        reinterpret_cast<const sgx_aes_gcm_128bit_tag_t *>(p_ciphertext->mac));
+    
+    if (rc != SGX_SUCCESS) {
+        LOG("sgx_rijndael128GCM_decrypt failed: %#x\n", rc);
+        ret = TKSM_ERROR_UNEXPECTED;
+        goto err_out;
+    }
+
+
+    // LOG("aes_key_buffer:\n");
+    // hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
+
+    // LOG("plain text:\n");
+    // hexdump(p_plaintext, plaintext_len);
+
+    // LOG("cipher text:\n");
+    // hexdump(p_ciphertext, ciphertext_len);
+
+err_out:
+    // ret = TKSM_ERROR_UNEXPECTED;
+    return ret;
+}
+
 

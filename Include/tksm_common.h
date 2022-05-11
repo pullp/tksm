@@ -28,4 +28,13 @@ typedef struct _buf_t {
     uint8_t data[];
 } buf_t;
 
+
+#define TKSM_AES_GCM_IV_SIZE               12
+#define TKSM_AES_GCM_MAC_SIZE              16
+typedef struct _tksm_aes_gcm_enc_t {
+    uint8_t iv[TKSM_AES_GCM_IV_SIZE];
+    uint8_t mac[TKSM_AES_GCM_MAC_SIZE];
+    uint8_t data[];
+} tksm_aes_gcm_enc_t;
+
 #endif // _TKMS_COMMON_H_

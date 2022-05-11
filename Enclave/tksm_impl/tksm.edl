@@ -52,5 +52,17 @@ enclave {
 
             [out, size = sealed_sym_key_len] uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len
         );
+
+        public uint64_t ecall_tksm_encrypt(
+            [in, size = sealed_sym_key_len] const uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len,
+            [user_check] const uint8_t* p_plaintext, uint64_t plaintext_len,
+            [user_check] tksm_aes_gcm_enc_t* p_ciphertext, uint64_t ciphertext_len
+        );
+
+        public uint64_t ecall_tksm_decrypt(
+            [in, size = sealed_sym_key_len] const uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len,
+            [user_check] const tksm_aes_gcm_enc_t* p_ciphertext, uint64_t ciphertext_len,
+            [user_check] uint8_t* p_plaintext, uint64_t plaintext_len
+        );
     };
 };
