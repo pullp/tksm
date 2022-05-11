@@ -1,5 +1,5 @@
-#ifndef _TKMS_COMMON_H_
-#define _TKMS_COMMON_H_
+#ifndef _TKSM_COMMON_H_
+#define _TKSM_COMMON_H_
 
 #define UNUSED(x) (void)(x)
 
@@ -37,4 +37,4 @@ typedef struct _tksm_aes_gcm_enc_t {
     uint8_t data[];
 } tksm_aes_gcm_enc_t;
 
-#endif // _TKMS_COMMON_H_
+#endif // _TKSM_COMMON_H_
