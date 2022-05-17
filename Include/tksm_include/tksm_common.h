@@ -1,5 +1,6 @@
 #ifndef _TKSM_COMMON_H_
 #define _TKSM_COMMON_H_
+#include <inttypes.h>
 
 #define UNUSED(x) (void)(x)
 
@@ -33,7 +34,9 @@ typedef struct _buf_t {
 #define TKSM_AES_GCM_MAC_SIZE              16
 typedef struct _tksm_aes_gcm_enc_t {
     uint8_t iv[TKSM_AES_GCM_IV_SIZE];
+    uint8_t padding[4];
     uint8_t mac[TKSM_AES_GCM_MAC_SIZE];
+    uint64_t data_size;
     uint8_t data[];
 } tksm_aes_gcm_enc_t;
 

@@ -517,6 +517,7 @@ tksm_status_t tksm_decrypt(
     const uint8_t* p_ciphertext, const uint64_t ciphertext_len,
     uint8_t** pp_plaintext, uint64_t* p_plaintext_len
 ) {
+    hexdump(nullptr, 0);
     tksm_status_t ret = TKSM_SUCCESS;
     sgx_status_t rc = SGX_SUCCESS;
     uint64_t ecall_rc = TKSM_SUCCESS;

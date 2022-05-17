@@ -45,6 +45,7 @@
 #include "Enclave_u.h"
 
 #include "tksm_api.h"
+#include "flas_api.h"
 
 using namespace std;
 
@@ -206,7 +207,7 @@ void save_file(const char *filename, const uint8_t *data, size_t size)
     fclose(fp);
 }
 
-vector<uint8_t> readBinaryContent(const string& filePath)
+static vector<uint8_t> readBinaryContent(const string& filePath)
 {
     ifstream file(filePath, ios::binary);
     if (!file.is_open())
@@ -250,10 +251,17 @@ void test_gen_asym_key(const sgx_enclave_id_t eid) {
         &p_sealed_priv_key, &sealed_priv_key_len,
         &p_quote_pub_key, &quote_pub_key_len
     );
+    if (ret != TKSM_SUCCESS) {
+        printf("Error: tksm_gen_asym_key failed: %d\n", ret);
+        return;
+    }
     
     save_file("pub_key.dat", p_pub_key, pub_key_len);
     save_file("sealed_priv_key.dat", p_sealed_priv_key, sealed_priv_key_len);
     save_file("quote_pub_key.dat", p_quote_pub_key, quote_pub_key_len);
+    free(p_pub_key);
+    free(p_sealed_priv_key);
+    free(p_quote_pub_key);
     LOG("ecall_tksm_gen_asym_key: %ld\n", ret);
 }
 
@@ -268,9 +276,15 @@ void test_gen_sym_key(const sgx_enclave_id_t eid) {
         &p_sealed_sym_key, &sealed_sym_key_len,
         &p_quote_sym_key, &quote_sym_key_len
     );
+    if (ret != TKSM_SUCCESS) {
+        printf("Error: tksm_gen_sym_key failed: %d\n", ret);
+        return;
+    }
 
     save_file("sealed_sym_key.dat", p_sealed_sym_key, sealed_sym_key_len);
     save_file("quote_sym_key.dat", p_quote_sym_key, quote_sym_key_len);
+    free(p_quote_sym_key);
+    free(p_quote_sym_key);
     LOG("ecall_tksm_gen_sym_key: %ld\n", ret);
 }
 
@@ -283,34 +297,8 @@ void test_export_sym_key(const sgx_enclave_id_t eid) {
     auto sealed_sym_key = readBinaryContent("sealed_sym_key.dat");
     // auto quote_sym_key = readBinaryContent("quote_sym_key.dat");
 
-    // uint8_t *p_pub_key = nullptr, *p_sealed_priv_key = nullptr, *p_quote_pub_key = nullptr;
-    // uint64_t pub_key_len = 0, sealed_priv_key_len = 0, quote_pub_key_len = 0;
-
-    // uint8_t *p_sealed_sym_key = nullptr, *p_quote_sym_key = nullptr;
-    // uint64_t sealed_sym_key_len = 0, quote_sym_key_len = 0;
-
     uint8_t *p_enc_sym_key = nullptr;
     uint64_t enc_sym_key_len = 0;
-
-    // ret = tksm_gen_asym_key(
-    //     eid,
-    //     &p_pub_key, &pub_key_len,
-    //     &p_sealed_priv_key, &sealed_priv_key_len,
-    //     &p_quote_pub_key, &quote_pub_key_len
-    // );
-    // // LOG("pub key:\n");
-    // // hexdump(p_pub_key, pub_key_len);
-    
-    // LOG("quote_pub_key_len: %ld\n", quote_pub_key_len); // should be 4599
-    // LOG("ecall_tksm_gen_asym_key: %#lx\n", ret);
-    // // save_file("quote_pub_key.dat", p_quote_pub_key, quote_pub_key_len);
-
-    // ret = tksm_gen_sym_key(
-    //     eid,
-    //     &p_sealed_sym_key, &sealed_sym_key_len,
-    //     &p_quote_sym_key, &quote_sym_key_len
-    // );
-    // LOG("ecall_tksm_gen_sym_key: %#lx\n", ret);
 
     ret = tksm_export_sym_key(
         eid,
@@ -320,7 +308,13 @@ void test_export_sym_key(const sgx_enclave_id_t eid) {
 
         &p_enc_sym_key, &enc_sym_key_len
     );
+    if (ret != TKSM_SUCCESS) {
+        printf("Error: tksm_export_sym_key failed: %d\n", ret);
+        return;
+    }
+
     save_file("enc_sym_key.dat", p_enc_sym_key, enc_sym_key_len);
+    free(p_enc_sym_key);
     
     LOG("ecall_tksm_export_sym_key: %#lx\n", ret);
 }
@@ -345,21 +339,34 @@ void test_import_sym_key(const sgx_enclave_id_t eid) {
         quote_sym_key.data(), quote_sym_key.size(),
         &p_sealed_sym_key2, &sealed_sym_key_len2
     );
+    if (ret != TKSM_SUCCESS) {
+        printf("Error: tksm_import_sym_key failed: %d\n", ret);
+        return;
+    }
+
+    free(p_sealed_sym_key2);
     LOG("ecall_tksm_import_sym_key: %#lx\n", ret);
 }
 
-const int TEST_ENC_N = 0x10000;
-void test_encrypt(const sgx_enclave_id_t eid) {
+tksm_status_t encrypt_file(const sgx_enclave_id_t eid, const std::string &plain_file_path, const std::string &enc_file_path) {
     tksm_status_t ret = TKSM_SUCCESS;
     uint8_t *cipher_text = nullptr;
     uint64_t cipher_text_len = 0;
 
     auto sealed_sym_key = readBinaryContent("sealed_sym_key.dat");
-
-    std::vector<int> plaintext(TEST_ENC_N);
-    for(int i = 0; i < TEST_ENC_N; ++i) {
-        plaintext[i] = i;
+    if (sealed_sym_key.size() == 0) {
+        LOG("sealed_sym_key is empty\n");
+        return TKSM_ERROR_INVALID_PARAMETER;
     }
+    // auto plaintext = readBinaryContent("sealed_sym_key.dat");
+
+    auto plaintext = readBinaryContent(plain_file_path);
+    if (plaintext.size() == 0) {
+        LOG("plaintext is empty\n");
+        return TKSM_ERROR_INVALID_PARAMETER;
+    }
+    // LOG("[f] plaintext:\n");
+    // hexdump(plaintext.data(), plaintext.size());
 
     ret = tksm_encrypt(
         eid,
@@ -367,52 +374,72 @@ void test_encrypt(const sgx_enclave_id_t eid) {
         reinterpret_cast<uint8_t*>(plaintext.data()), plaintext.size(),
         &cipher_text, &cipher_text_len
     );
+    if (ret != TKSM_SUCCESS) {
+        LOG("ecall_tksm_encrypt failed: %#lx\n", ret);
+        return ret;
+    }
 
-    save_file("cipher_text.dat", cipher_text, cipher_text_len);
+    save_file(enc_file_path.c_str(), cipher_text, cipher_text_len);
+    free(cipher_text);
 
-    LOG("ecall_tksm_encrypt: %#lx\n", ret);
+    // LOG("encrypt_file: %#lx\n", ret);
+    return ret;
 }
 
-void test_decrypt(const sgx_enclave_id_t eid) {
+
+tksm_status_t decrypt_file(const sgx_enclave_id_t eid, const std::string &enc_file_path, const std::string &dec_file_path) {
     tksm_status_t ret = TKSM_SUCCESS;
-    uint8_t *plain_text = nullptr;
-    uint64_t plain_text_len = 0;
+    uint8_t *dec_text = nullptr;
+    uint64_t dec_text_len = 0;
 
     auto sealed_sym_key = readBinaryContent("sealed_sym_key.dat");
-    auto cipher_text = readBinaryContent("cipher_text.dat");
+    if (sealed_sym_key.size() == 0) {
+        LOG("sealed_sym_key is empty\n");
+        return TKSM_ERROR_INVALID_PARAMETER;
+    }
 
-
-    // const int TEST_ENC_N = 0x40;
-    std::vector<int> plaintext1(TEST_ENC_N);
-    for(int i = 0; i < TEST_ENC_N; ++i) {
-        plaintext1[i] = i;
+    auto ciphertext = readBinaryContent(enc_file_path);
+    if (ciphertext.size() == 0) {
+        LOG("ciphertext is empty\n");
+        return TKSM_ERROR_INVALID_PARAMETER;
     }
 
     ret = tksm_decrypt(
         eid,
         sealed_sym_key.data(), sealed_sym_key.size(),
-        cipher_text.data(), cipher_text.size(),
-        &plain_text, &plain_text_len
+        reinterpret_cast<uint8_t*>(ciphertext.data()), ciphertext.size(),
+        &dec_text, &dec_text_len
     );
-    LOG("ecall_tksm_decrypt: %#lx\n", ret);
-
-    // LOG("dec_plain_text:\n");
-    // hexdump(plain_text, 0x40);
-
-    if (memcmp(plaintext1.data(), plain_text, plain_text_len) != 0) {
-        LOG("dec_plain_text not equal to plaintext1\n");
+    if (ret != TKSM_SUCCESS) {
+        LOG("ecall_tksm_decrypt failed: %#lx\n", ret);
+        return ret;
     }
 
-    // for (int i = 0; i < TEST_ENC_N; ++i) {
-    //     if (plaintext1[i] != plain_text[i]) {
-    //         LOG("plaintext1[%d] != plain_text[%d]\n", i, i);
-    //         break;
-    //     }
-    // }
+    save_file(dec_file_path.c_str(), dec_text, dec_text_len);
+    free(dec_text);
 
-    // save_file("plain_text.dat", plain_text, plain_text_len);
+    // LOG("encrypt_file: %#lx\n", ret);
+    return ret;
+}
 
 
+void test_encrypt(const sgx_enclave_id_t eid) {
+    tksm_status_t ret = TKSM_SUCCESS;
+    // auto sealed_sym_key = readBinaryContent("sealed_sym_key.dat");
+    ret = encrypt_file(eid, "/root/master/my_code/states/s1.dat", "./states/s1.enc2");
+    if (ret != TKSM_SUCCESS)
+        LOG("Error: encrypt_file failed: %d\n", ret);
+    else
+        LOG("encrypt_file success\n");
+}
+
+void test_decrypt(const sgx_enclave_id_t eid) {
+    tksm_status_t ret = TKSM_SUCCESS;
+    ret = decrypt_file(eid, "./states/s1.enc", "./states/s1.dec2");
+    if (ret != TKSM_SUCCESS)
+        LOG("Error: decrypt_file failed: %d\n", ret);
+    else
+        LOG("decrypt_file success\n");
 }
 
 
@@ -420,16 +447,49 @@ void test_decrypt(const sgx_enclave_id_t eid) {
 
 void test(const sgx_enclave_id_t eid) {
     hexdump(nullptr, 0);
+    UNUSED(eid);
     // LOG("???\n");
     // test_gen_asym_key(eid);
     // test_gen_sym_key(eid);
     // test_export_sym_key(eid);
     // test_import_sym_key(eid);
-    LOG("\n\ntest_encrypt\n");
-    test_encrypt(eid);
+    // test_encrypt(eid);
+    // test_decrypt(eid);
 
-    LOG("\n\ntest_decrypt\n");
-    test_decrypt(eid);
+    // encrypt_file(
+    //     eid,
+    //     "/root/master/my_code/states/s1.dat", 
+    //     "./states/s1.enc"
+    // );
+
+    // encrypt_file(
+    //     eid,
+    //     "/root/master/my_code/states/s2.dat", 
+    //     "./states/s2.enc"
+    // );
+
+    // encrypt_file(
+    //     eid,
+    //     "/root/master/my_code/states/s3.dat", 
+    //     "./states/s3.enc"
+    // );
+
+    // encrypt_file(
+    //     eid,
+    //     "./plaintext",
+    //     "./encrypted"
+    // );
+
+    // decrypt_file(
+    //     eid,
+    //     "./encrypted2",
+    //     "./decrypted2"
+    // );
+
+    
+
+    // test_FLASEM();
+    test_FLASServer();
 }
 
 #pragma GCC diagnostic pop

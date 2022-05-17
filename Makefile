@@ -36,6 +36,10 @@ SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
 
+ASIO_INCLUDE_PATHS := -I./asio-1.22.1/include
+ASIO_LINK_FLAGS := -lpthread
+
+
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
 else ifeq ($(findstring -m32, $(CXXFLAGS)), -m32)
@@ -70,7 +74,7 @@ SGX_COMMON_FLAGS += -Wall -Wextra -Winit-self -Wpointer-arith -Wreturn-type \
                     -Waddress -Wsequence-point -Wformat-security \
                     -Wmissing-include-dirs -Wfloat-equal -Wundef -Wshadow \
                     -Wcast-align -Wcast-qual -Wconversion -Wredundant-decls
-SGX_COMMON_CFLAGS := $(SGX_COMMON_FLAGS) -Wjump-misses-init -Wstrict-prototypes -Wunsuffixed-float-constants
+SGX_COMMON_CFLAGS := $(SGX_COMMON_FLAGS) -Wjump-misses-init -Wstrict-prototypes -Wunsuffixed-float-constants 
 SGX_COMMON_CXXFLAGS := $(SGX_COMMON_FLAGS) -Wnon-virtual-dtor -std=c++14
 
 ######## App Settings ########
@@ -86,9 +90,9 @@ Uae_Library_Name := sgx_quote_ex
 
 
 App_Cpp_Files := App/App.cpp  $(wildcard App/tksm_api/*.cpp) $(wildcard App/flas_api/*.cpp)
-App_Include_Paths := -IApp -I$(SGX_SDK)/include -IInclude/tksm_include -IInclude/flas_include  -IApp/tksm_api
+App_Include_Paths := -IApp -I$(SGX_SDK)/include -IInclude/tksm_include -IInclude/flas_include  -IApp/tksm_api -IApp/flas_api $(ASIO_INCLUDE_PATHS) $(ASIO_LINK_FLAGS)
 
-App_C_Flags := -fPIC -Wno-attributes $(App_Include_Paths)
+App_C_Flags := -fPIC -Wno-attributes $(App_Include_Paths) 
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.
@@ -103,7 +107,7 @@ else
 endif
 
 App_Cpp_Flags := $(App_C_Flags) 
-App_Link_Flags := -L$(SGX_LIBRARY_PATH) -l$(DCAP_Library_Name) -lsgx_dcap_quoteverify -l$(Urts_Library_Name) -l$(Uae_Library_Name) -ldl -lpthread # -fsanitize=address
+App_Link_Flags := -L$(SGX_LIBRARY_PATH) -l$(DCAP_Library_Name) -lsgx_dcap_quoteverify -l$(Urts_Library_Name) -l$(Uae_Library_Name) -ldl -lpthread -fsanitize=address
 
 App_Cpp_Objects := $(App_Cpp_Files:.cpp=.o)
 

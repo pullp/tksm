@@ -617,9 +617,10 @@ uint64_t ecall_tksm_encrypt(const uint8_t* p_sealed_sym_key, uint64_t sealed_sym
         ret = TKSM_ERROR_UNEXPECTED;
         goto err_out;
     }
+    p_ciphertext->data_size = static_cast<uint32_t>(plaintext_len);
 
-    // LOG("aes_key_buffer:\n");
-    // hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
+    LOG("encrypt aes key:\n");
+    hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
 
     // LOG("plain text:\n");
     // hexdump(p_plaintext, plaintext_len);
@@ -679,8 +680,8 @@ uint64_t ecall_tksm_decrypt(
     }
 
 
-    // LOG("aes_key_buffer:\n");
-    // hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
+    LOG("decrypt aes key:\n");
+    hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
 
     // LOG("plain text:\n");
     // hexdump(p_plaintext, plaintext_len);
