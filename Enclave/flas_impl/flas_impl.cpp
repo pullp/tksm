@@ -24,6 +24,7 @@ typedef struct _agg_ctx_t {
     state_t state;
 } agg_ctx_t;
 
+
 bool float_eq(const float a, const float b) {
     #define FLOAT_EQ_EPSILON 0.00001 
     return fabs(a - b) < FLOAT_EQ_EPSILON;
@@ -112,6 +113,20 @@ err_out:
     return ret;
 }
 
+uint64_t ecall_flas_agg_autocopy(
+    const uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len, 
+    const enc_states_t* p_enc_bufs,
+    tksm_aes_gcm_enc_t *p_out,
+    const uint8_t *p_buf, uint64_t buf_len)
+{
+    return ecall_flas_agg(
+        p_sealed_sym_key, sealed_sym_key_len,
+        p_enc_bufs,
+        p_out
+    );
+}
+
+
 uint64_t ecall_flas_agg(
     const uint8_t* p_sealed_sym_key, uint64_t sealed_sym_key_len, 
     const enc_states_t* p_enc_bufs,
@@ -149,7 +164,7 @@ uint64_t ecall_flas_agg(
     }
 
     LOG("aes key:\n");
-    hexdump(aes_key, TKSM_AES_KEY_SIZE);
+    // hexdump(aes_key, TKSM_AES_KEY_SIZE);
 
     ret = agg_init(p_enc_bufs->weight_cnt, &ctx);
     if (ret != FLAS_SUCCESS) {
@@ -169,7 +184,7 @@ uint64_t ecall_flas_agg(
         LOG("decrypt state: %lu\n", i);
         p_ciphertext = p_enc_bufs->ptrs[i];
         LOG("ciphertext:\n");
-        hexdump(p_ciphertext, sizeof(tksm_aes_gcm_enc_t));
+        // hexdump(p_ciphertext, sizeof(tksm_aes_gcm_enc_t));
         LOG("ciphertext len: %#lx\n", p_ciphertext->data_size);
 
         sgx_rc = sgx_rijndael128GCM_decrypt(
@@ -195,6 +210,7 @@ uint64_t ecall_flas_agg(
             ret = FLAS_ERROR_UNEXPECTED;
             goto err_free_dec_buf;
         }
+        LOG("[!!] weight_cnt: %d\n", p_state->weight_cnt);
 
         ret = agg_add_weight(
             ctx,

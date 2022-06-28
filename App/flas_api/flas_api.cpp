@@ -6,6 +6,8 @@
 #include <fstream>
 #include <memory>
 
+#include <chrono>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <asio.hpp>
@@ -28,6 +30,9 @@ using std::ios_base;
 using std::streampos;
 // using std::make_unique;
 using asio::ip::tcp;
+
+// using std::chrono;
+const uint64_t NUM_USERS_TEST = 100;
 
 static void hexdump(const void *_p, uint64_t n)
 {
@@ -119,7 +124,15 @@ flas_status_t FLASEM::do_agg() {
     uint64_t ecall_rc = FLAS_SUCCESS;
     uint64_t enc_states_cnt = this->enc_state_vec_.size();
     enc_state_t enc_global_state;
+    // std::chrono::time_point start, stop;
+    auto start = std::chrono::high_resolution_clock::now();
+    auto stop = start;
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
+    // auto buf = std::vector<uint8_t>::new()
+    // std::vector<uint8_t> buf(11832 * NUM_USERS_TEST);
+
+    // time_t timer;
     // if (state_received_ != client_total_) {
     //     LOG("Error: state_received_ != client_total_\n");
     //     return FLAS_ERROR_LACK_OF_LOCAL_STATE;
@@ -154,12 +167,23 @@ flas_status_t FLASEM::do_agg() {
     enc_global_state.reserve(this->enc_state_vec_[0].size());
     enc_global_state.resize(this->enc_state_vec_[0].size());
 
+    
+
+    start = std::chrono::high_resolution_clock::now();
     rc = ecall_flas_agg(
         this->eid_, &ecall_rc, 
         this->sealed_aes_key_.data(), this->sealed_aes_key_.size(),
         enc_states,
         reinterpret_cast<tksm_aes_gcm_enc_t*>(enc_global_state.data())
         );
+    // rc = ecall_flas_agg_autocopy(
+    //     this->eid_, &ecall_rc, 
+    //     this->sealed_aes_key_.data(), this->sealed_aes_key_.size(),
+    //     enc_states,
+    //     reinterpret_cast<tksm_aes_gcm_enc_t*>(enc_global_state.data()),
+    //     (uint8_t *) buf.data(), buf.size()
+    //     );
+    stop = std::chrono::high_resolution_clock::now();
     
     if (rc != SGX_SUCCESS) {
         LOG("ecall_flas_agg error: %#x\n", rc);
@@ -170,6 +194,17 @@ flas_status_t FLASEM::do_agg() {
         ret = FLAS_ERROR_UNEXPECTED;
         goto err_free_enc_states;
     }
+
+
+    // duration = duration_cast<microseconds>(stop - start);
+
+    std::cout 
+        // << "[!!!] ecall do_agg duration: microseconds: " 
+        << "[ecall] "
+        << this->client_total_ 
+        << " : "
+        << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() 
+        << std::endl;
 
     this->enc_global_state_vec_.push_back(std::move(enc_global_state));
     // this->enc_global_state_ = std::move(enc_global_state);
@@ -204,28 +239,55 @@ const FLASEM::enc_state_t& FLASEM::get_global_state(uint64_t epoch_idx) {
     return this->enc_global_state_vec_[epoch_idx];
 }
 
+void test_agg(uint64_t num_users) {
+    flas_status_t ret = FLAS_SUCCESS;
+    FLASEM em("./enclave.signed.so", "./sealed_sym_key.dat", num_users, 10);
+    // auto enc_state = readBinaryContent("./states/s10000.enc");
+    auto enc_state = readBinaryContent("./states/s1.enc");
+
+    for (int i = 0; i < num_users; i ++) {
+        // auto t = enc_state;
+        ret = em.add_state(0, 100, enc_state );
+        LOG("add_state %d: %d\n", i, ret);
+    }
+    ret = em.do_agg();
+    LOG("do_agg: %#x\n", ret); 
+}
+
 
 void test_FLASEM() {
-    hexdump(nullptr, 0);
+    // test_agg(1);
+
+    for (int i = 10; i <= 100; i += 10) {
+        
+        test_agg(i);
+    }
+    // hexdump(nullptr, 0);
     
-    flas_status_t ret = FLAS_SUCCESS;
-    auto enc_state1 = readBinaryContent("./states/s1.enc");
-    auto enc_state2 = readBinaryContent("./states/s2.enc");
-    auto enc_state3 = readBinaryContent("./states/s3.enc");
+    // flas_status_t ret = FLAS_SUCCESS;
+    // auto enc_state1 = readBinaryContent("./states/s1.enc");
+    // auto enc_state2 = readBinaryContent("./states/s2.enc");
+    // auto enc_state3 = readBinaryContent("./states/s3.enc");
 
-    uint64_t epoch_idx = 0, sample_cnt = 100;
+    // uint64_t epoch_idx = 0, sample_cnt = 100;
+    // uint64_t num_users = NUM_USERS_TEST;
 
-    FLASEM em("./enclave.signed.so", "./sealed_sym_key.dat", 3, 10);
-    ret = em.add_state(epoch_idx, sample_cnt, std::move(enc_state1));
-    LOG("add_state1: %#x\n", ret);
-    ret = em.add_state(epoch_idx, sample_cnt, std::move(enc_state2));
-    LOG("add_state2: %#x\n", ret);
-    ret = em.add_state(epoch_idx, sample_cnt, std::move(enc_state3));
-    LOG("add_state3: %#x\n", ret);
+    // FLASEM em("./enclave.signed.so", "./sealed_sym_key.dat", num_users, 10);
 
-    ret = em.do_agg();
-    LOG("do_agg: %#x\n", ret);
+    // for (int i = 0; i < num_users; i ++) {
+    //     auto enc_state = readBinaryContent("./states/s1.enc");
+    //     ret = em.add_state(epoch_idx, sample_cnt, std::move(enc_state));
+    //     LOG("add_state %d: %d\n", i, ret);
+    // }
+    // // ret = em.add_state(epoch_idx, sample_cnt, std::move(enc_state1));
+    // // LOG("add_state1: %#x\n", ret);
+    // // ret = em.add_state(epoch_idx, sample_cnt, std::move(enc_state2));
+    // // LOG("add_state2: %#x\n", ret);
+    // // ret = em.add_state(epoch_idx, sample_cnt, std::move(enc_state3));
+    // // LOG("add_state3: %#x\n", ret);
 
+    // ret = em.do_agg();
+    // LOG("do_agg: %#x\n", ret);
 }
 
 void test_FLASServer() {

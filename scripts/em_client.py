@@ -259,3 +259,12 @@ if __name__ == "__main__":
 
 
 # io.interactive()
+
+
+def gen_enc_state(weight_cnt, path):
+    s = b'\x00' * 4 * weight_cnt
+    s = struct.pack("<Q", weight_cnt) + s
+    s_enc = aes_utils.encrypt(aes_utils.KEY, s, aes_utils.NONCE)
+    open(path, "wb").write(s_enc)
+    # return s_enc
+    

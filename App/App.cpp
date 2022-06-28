@@ -488,8 +488,8 @@ void test(const sgx_enclave_id_t eid) {
 
     
 
-    // test_FLASEM();
-    test_FLASServer();
+    test_FLASEM();
+    // test_FLASServer();
 }
 
 #pragma GCC diagnostic pop
@@ -502,7 +502,7 @@ int SGX_CDECL main(int argc, char *argv[])
 
     /* Initialize the enclave */
     if(initialize_enclave() < 0){
-        printf("Enter a character before exit ...\n");
+        LOG("Enter a character before exit ...\n");
         getchar();
         return -1; 
     }
@@ -515,7 +515,7 @@ int SGX_CDECL main(int argc, char *argv[])
     /* Destroy the enclave */
     sgx_destroy_enclave(global_eid);
     
-    printf("Info: tksm enclave successfully returned.\n");
+    LOG("Info: tksm enclave successfully returned.\n");
 
     //printf("Enter a character before exit ...\n");
     //getchar();

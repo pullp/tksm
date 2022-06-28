@@ -10,7 +10,10 @@
 #include "tksm_common.h"
 #include "tksm_error.h"
 
-#define LOG(...) do { printf("[u][%s:%d:%s] ", __FILE__, __LINE__, __FUNCTION__);  printf(__VA_ARGS__); } while (0)
+// #define LOG(...) do { printf("[u][%s:%d:%s] ", __FILE__, __LINE__, __FUNCTION__);  printf(__VA_ARGS__); } while (0)
+#define LOG(...) 
+
+
 
 tksm_status_t tksm_gen_asym_key(
     const sgx_enclave_id_t eid,

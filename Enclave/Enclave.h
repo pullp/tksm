@@ -48,6 +48,7 @@ void hexdump(const void *_p, uint64_t n);
 }
 #endif
 
-#define LOG(...) do { eprintf("\033[0;32m[t]\033[0;0m[%s:%d:%s]: ", __FILE__, __LINE__, __FUNCTION__); eprintf(__VA_ARGS__); } while (0)
+// #define LOG(...) do { eprintf("\033[0;32m[t]\033[0;0m[%s:%d:%s]: ", __FILE__, __LINE__, __FUNCTION__); eprintf(__VA_ARGS__); } while (0)
+#define LOG(...) 
 
 #endif /* !_ENCLAVE_H_ */

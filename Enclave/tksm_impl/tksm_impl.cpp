@@ -217,7 +217,7 @@ uint64_t ecall_tksm_gen_sym_key(
     }
 
     LOG("AES key:\n");
-    hexdump(aes_key, TKSM_AES_KEY_SIZE);
+    // hexdump(aes_key, TKSM_AES_KEY_SIZE);
 
     // Calc hash of the AES key
     rc = sgx_sha256_msg(aes_key, TKSM_AES_KEY_SIZE, &hash);
@@ -620,7 +620,7 @@ uint64_t ecall_tksm_encrypt(const uint8_t* p_sealed_sym_key, uint64_t sealed_sym
     p_ciphertext->data_size = static_cast<uint32_t>(plaintext_len);
 
     LOG("encrypt aes key:\n");
-    hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
+    // hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
 
     // LOG("plain text:\n");
     // hexdump(p_plaintext, plaintext_len);
@@ -681,7 +681,7 @@ uint64_t ecall_tksm_decrypt(
 
 
     LOG("decrypt aes key:\n");
-    hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
+    // hexdump(aes_key_buffer, TKSM_AES_KEY_SIZE);
 
     // LOG("plain text:\n");
     // hexdump(p_plaintext, plaintext_len);

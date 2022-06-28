@@ -27,12 +27,14 @@ using std::vector;
 
 using asio::ip::tcp;
 
-#define LOG(...) do { printf("[u][%s:%d:%s] ", __FILE__, __LINE__, __FUNCTION__);  printf(__VA_ARGS__); } while (0)
+// #define LOG(...) do { printf("[u][%s:%d:%s] ", __FILE__, __LINE__, __FUNCTION__);  printf(__VA_ARGS__); } while (0)
+#define LOG(...) 
 
 
 #define HEADER_MAGIC 0xdeadbeef
 #define HEADER_OP_ADD_STATE 0x1
 #define HEADER_OP_GET_STATE 0x2
+#define HEADER_OP_GET_INIG_CONFIG 0x3
 typedef struct _req_header_t {
     uint32_t magic;
     uint32_t op_type;
@@ -49,6 +51,7 @@ typedef struct _req_header_t {
 typedef struct _resp_header_t {
     uint32_t magic;
     uint32_t op_type;
+    uint64_t client_id;
     uint64_t rc;
     uint64_t epoch_idx;
     uint64_t payload_size;
